@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 /// @custom:security-contact 0xcozart@gmail.com
@@ -17,10 +16,23 @@ contract MyToken is
     ERC721Burnable
 {
     using Counters for Counters.Counter;
-
     Counters.Counter private _tokenIdCounter;
 
-    constructor() ERC721("MyToken", "MTK") {}
+    string private _mintHash;
+    string private _prefixUri;
+
+    event Promoted(address indexed _promoted, uint256 indexed _tokenId);
+
+    constructor(string mintHash) ERC721("MyToken", "MTK") {
+        _mintHash = mintHash;
+        _prefixUri = "https://place.holder";
+    }
+
+    struct TokenData {
+        uint16 rank;
+    }
+
+    mapping(address => TokenData) public ownerToTokenData;
 
     function pause() public onlyOwner {
         _pause();
@@ -30,15 +42,25 @@ contract MyToken is
         _unpause();
     }
 
-    modifier onlyCounsellor {
-        
+    function totalSupply() public constant returns (uint256) {
+        return ownerToTokenData.length;
     }
 
-    function safeMint(address to, string memory uri) public onlyOwner {
+    function promoteChancellor(address _to) public onlyOwner {}
+
+    function safeMint(
+        address _to,
+        uint256 _tokenId,
+        string memory _uri,
+        string _mintKey
+    ) public onlyOwner {
+        require(!_ownerToToken[to], "address already has a token");
+        require(_mintHash == keccak256(_mintKey), "invalid mint key");
         uint256 tokenId = _tokenIdCounter.current();
+        totalSupply.increment();
         _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
+        _safeMint(to, _tokenId);
+        _setTokenURI(tokenId, _prefixUri + _uri);
     }
 
     function _beforeTokenTransfer(
@@ -50,14 +72,6 @@ contract MyToken is
     }
 
     // The following functions are overrides required by Solidity.
-
-    function _burn(uint256 tokenId)
-        internal
-        override(ERC721, ERC721URIStorage)
-    {
-        super._burn(tokenId);
-    }
-
     function tokenURI(uint256 tokenId)
         public
         view
